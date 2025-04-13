@@ -105,7 +105,21 @@ export class PdfPageExtract implements INodeType {
 						);
 					}
 
-					const buffer = Buffer.from(binaryData[binaryPropertyName].data, 'base64');
+					console.log('binary property:', binaryPropertyName);
+					console.log('available binary keys:', Object.keys(binaryData || {}));
+
+					const base64Data = binaryData[binaryPropertyName].data;
+
+					if (!base64Data || typeof base64Data !== 'string') {
+						throw new NodeOperationError(this.getNode(), 'PDF binary data is missing or not a string!');
+					}
+
+					const buffer = Buffer.from(base64Data, 'base64');
+					console.log('Buffer length:', buffer.length);
+
+					if (buffer.length === 0) {
+						throw new NodeOperationError(this.getNode(), 'PDF binary data is empty after decoding!');
+					}
 					
 					// Array om pagina's op te slaan
 					const pages: string[] = [];
