@@ -1,190 +1,62 @@
-import {
-	NodeOperationError,
-	type IExecuteFunctions,
-	type INodeExecutionData,
-	type INodeType,
-	type INodeTypeDescription,
-	NodeConnectionType,
-} from 'n8n-workflow';
+# PDF Page Extract - n8n Custom Node
 
-// We gebruiken require omdat pdf-parse geen TypeScript definities heeft
-const pdfParse = require('pdf-parse');
-export class PdfPageExtract implements INodeType {
-	description: INodeTypeDescription = {
-		displayName: 'PDF Page Extract',
-		name: 'pdfPageExtract',
-		icon: 'file:pdf.svg',
-		group: ['transform'],
-		version: 1,
-		subtitle: '={{$parameter["operation"]}}',
-		description: 'Extraheert tekst per pagina uit een PDF bestand',
-		defaults: {
-			name: 'PDF Page Extract',
-		},
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
-		inputs: [NodeConnectionType.Main],
-		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
-		outputs: [NodeConnectionType.Main],
-		properties: [
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Extract Pages',
-						value: 'extractPages',
-						description: 'Extract text from PDF as an array of pages',
-						action: 'Extract text from PDF as an array of pages',
-					},
-				],
-				default: 'extractPages',
-			},
-			{
-				displayName: 'Binary Property',
-				name: 'binaryPropertyName',
-				type: 'string',
-				default: 'data',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['extractPages'],
-					},
-				},
-				description: 'Name of the binary property which contains the PDF data',
-			},
-			{
-				displayName: 'Include Raw Text',
-				name: 'includeRawText',
-				type: 'boolean',
-				default: false,
-				displayOptions: {
-					show: {
-						operation: ['extractPages'],
-					},
-				},
-				description: 'Whether to include the complete raw text in addition to the pages array',
-			},
-			{
-				displayName: 'Include Metadata',
-				name: 'includeMetadata',
-				type: 'boolean',
-				default: true,
-				displayOptions: {
-					show: {
-						operation: ['extractPages'],
-					},
-				},
-				description: 'Whether to include PDF metadata in the output',
-			},
-		],
-	};
+Deze n8n custom node stelt je in staat om tekst per pagina uit een PDF-bestand te extraheren. Handig als je gestructureerd informatie uit een document wilt halen.
 
-	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		const items = this.getInputData();
-		const returnData: INodeExecutionData[] = [];
-		const operation = this.getNodeParameter('operation', 0) as string;
+## ✨ Functionaliteit
 
-		if (operation === 'extractPages') {
-			for (let i = 0; i < items.length; i++) {
-				try {
-					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
-					const includeRawText = this.getNodeParameter('includeRawText', i) as boolean;
-					const includeMetadata = this.getNodeParameter('includeMetadata', i) as boolean;
-					
-					if (!items[i].binary) {
-						throw new NodeOperationError(this.getNode(), 'No binary data exists on item!');
-					}
-					
-					const binaryData = items[i].binary as Record<string, { data: string; fileName?: string; mimeType?: string }>;
-					if (!binaryData[binaryPropertyName]) {
-						throw new NodeOperationError(
-							this.getNode(),
-							`Binary data property "${binaryPropertyName}" does not exist on item!`,
-						);
-					}
+- Extraheert tekst uit elke pagina van een PDF-bestand
+- Optioneel: voeg de volledige platte tekst (raw text) toe
+- Optioneel: voeg PDF metadata toe (titel, auteur, enz.)
+- Werkt met bestanden die in n8n als binary worden meegestuurd
 
-					console.log('binary property:', binaryPropertyName);
-					console.log('available binary keys:', Object.keys(binaryData || {}));
+## 🛠 Gebruik
 
-					const base64Data = binaryData[binaryPropertyName].data;
+1. Voeg deze node toe via de **n8n Community Nodes** UI.
+2. Gebruik een node zoals HTTP Request of Webhook om een PDF-bestand aan te leveren.
+3. Koppel de PDF aan het binary veld (standaard heet dit `data`).
+4. Kies de gewenste opties:
+   - `Include Raw Text`: voeg de volledige platte tekst toe
+   - `Include Metadata`: voeg documentmetadata toe aan de output
 
-					if (!base64Data || typeof base64Data !== 'string') {
-						throw new NodeOperationError(this.getNode(), 'PDF binary data is missing or not a string!');
-					}
+## 🖼 Voorbeeldworkflow
 
-					const buffer = Buffer.from(base64Data, 'base64');
-					console.log('Buffer length:', buffer.length);
+Onderstaande workflow laat zien hoe je de PDF Page Extract node kunt gebruiken om een PDF van een URL op te halen en de tekst per pagina te splitsen:
 
-					if (buffer.length === 0) {
-						throw new NodeOperationError(this.getNode(), 'PDF binary data is empty after decoding!');
-					}
-					
-					// Array om pagina's op te slaan
-					const pages: string[] = [];
-					
-					// Opties voor pdf-parse
-					const options = {
-						// @ts-ignore - pdf-parse types zijn niet beschikbaar
-						pagerender: function(pageData: any) {
-							const renderOptions = {
-								normalizeWhitespace: false,
-								disableCombineTextItems: false
-							};
-							
-							return pageData.getTextContent(renderOptions)
-								.then(function(textContent: any) {
-									let text = '';
-									for (const item of textContent.items) {
-										text += item.str + ' ';
-									}
-									pages.push(text.trim());
-									return text;
-								});
-						}
-					};
+![Voorbeeldworkflow](./assets/workflow-example.png)
 
-					// @ts-ignore - pdf-parse types zijn niet beschikbaar
-					const data = await pdfParse(buffer, options);
+1. **Webhook** – Ontvangt een request (bijv. via browser of automation tool).
+2. **HTTP Request** – Downloadt een PDF-bestand vanaf een externe URL.
+3. **PDF Page Extract** – Extraheert de tekst per pagina.
+4. **Split Out** – Splitst de array met pagina’s in losse items, zodat je per pagina verder kunt werken (bijv. AI, validatie, extractie, etc).
 
-					const json: Record<string, any> = {
-						filename: binaryData[binaryPropertyName].fileName || 'document.pdf',
-						totalPages: data.numpages,
-						pages: pages,
-					};
+Plaats `workflow-example.png` in een `assets/` map binnen de repo (optioneel: optimaliseer op max 1000px breedte).
 
-					// Voeg optionele velden toe
-					if (includeRawText) {
-						json.text = data.text;
-					}
+## 🔁 Output
 
-					if (includeMetadata) {
-						json.metadata = data.metadata;
-						json.info = data.info;
-					}
+De node retourneert per item een JSON-structuur zoals:
 
-					const newItem: INodeExecutionData = {
-						json,
-						binary: items[i].binary,
-					};
-
-					returnData.push(newItem);
-				} catch (error: any) { // Hier specificeren we dat error van het type 'any' is
-					if (this.continueOnFail()) {
-						returnData.push({
-							json: {
-								error: error.message,
-							},
-							binary: items[i].binary,
-						});
-						continue;
-					}
-					throw error;
-				}
-			}
-		}
-
-		return [returnData];
-	}
+```json
+{
+  "filename": "example.pdf",
+  "totalPages": 5,
+  "pages": [
+    "Eerste pagina tekst...",
+    "Tweede pagina tekst...",
+    ...
+  ],
+  "text": "Volledige tekst (optioneel)",
+  "metadata": {...}, // Optioneel
+  "info": {...} // Optioneel
 }
+```
+
+## 🧩 Tip
+
+Gebruik de output van deze node met andere nodes zoals:
+- `Set` node om specifieke tekstvelden te isoleren
+- `If` node om voorwaarden toe te passen op specifieke pagina's
+- `HTTP Request` node om informatie naar een API te sturen
+
+---
+
+Voor vragen of feedback kun je een issue openen op GitHub.
