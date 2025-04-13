@@ -9,7 +9,6 @@ import {
 
 // We gebruiken require omdat pdf-parse geen TypeScript definities heeft
 const pdfParse = require('pdf-parse');
-
 export class PdfPageExtract implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'PDF Page Extract',
@@ -22,7 +21,9 @@ export class PdfPageExtract implements INodeType {
 		defaults: {
 			name: 'PDF Page Extract',
 		},
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
 		inputs: [NodeConnectionType.Main],
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
 		outputs: [NodeConnectionType.Main],
 		properties: [
 			{
