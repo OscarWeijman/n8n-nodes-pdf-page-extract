@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-pdf-page-extract",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "n8n node to extract PDF pages as an array of text",
   "keywords": [
     "n8n-community-node-package",
