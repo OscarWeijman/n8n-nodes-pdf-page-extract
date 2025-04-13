@@ -1,48 +1,59 @@
-# n8n-nodes-_node-name_
+# PDF Page Extract - n8n Custom Node
 
-This is an n8n community node. It lets you use _app/service name_ in your n8n workflows.
+This n8n community node allows you to extract text from each page of a PDF file. It's ideal for structured document processing in your workflows.
 
-_App/service name_ is _one or two sentences describing the service this node integrates with_.
+## ✨ Features
 
-[n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
+- Extracts text from every page in a PDF
+- Optionally includes the full raw text
+- Optionally includes PDF metadata (title, author, etc.)
+- Works with binary files in n8n
 
-[Installation](#installation)  
-[Operations](#operations)  
-[Credentials](#credentials)  <!-- delete if no auth needed -->  
-[Compatibility](#compatibility)  
-[Usage](#usage)  <!-- delete if not using this section -->  
-[Resources](#resources)  
-[Version history](#version-history)  <!-- delete if not using this section -->  
+## 🛠 Usage
 
-## Installation
+1. Install the node via the **n8n Community Nodes** interface.
+2. Use a node like HTTP Request or Webhook to provide a PDF file.
+3. Attach the PDF to the binary property (default is `data`).
+4. Configure the following options:
+   - `Include Raw Text`: adds the full unstructured text output
+   - `Include Metadata`: adds document metadata (e.g., title, author)
 
-Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
+## 🖼 Example Workflow
 
-## Operations
+The following example shows how to download a PDF from a URL and extract its pages:
 
-_List the operations supported by your node._
+![Example Workflow](./assets/workflow-example.png)
 
-## Credentials
+1. **Webhook** – Triggers the workflow (e.g. via browser or automation).
+2. **HTTP Request** – Downloads the PDF file.
+3. **PDF Page Extract** – Extracts page-by-page text.
+4. **Split Out** – Splits the array of pages into individual items for further handling (e.g. AI, validation, extraction).
 
-_If users need to authenticate with the app/service, provide details here. You should include prerequisites (such as signing up with the service), available authentication methods, and how to set them up._
+## 🔁 Output
 
-## Compatibility
+Each item returned looks like this:
 
-_State the minimum n8n version, as well as which versions you test against. You can also include any known version incompatibility issues._
+```json
+{
+  "filename": "example.pdf",
+  "totalPages": 5,
+  "pages": [
+    "Page 1 text...",
+    "Page 2 text..."
+  ],
+  "text": "Full document text (optional)",
+  "metadata": {...},
+  "info": {...}
+}
+```
 
-## Usage
+## 🧩 Tips
 
-_This is an optional section. Use it to help users with any difficult or confusing aspects of the node._
+Use this node in combination with:
+- The `Set` node to isolate values
+- The `If` node for conditionals based on page content
+- The `HTTP Request` node to send data to another API
 
-_By the time users are looking for community nodes, they probably already know n8n basics. But if you expect new users, you can link to the [Try it out](https://docs.n8n.io/try-it-out/) documentation to help them get started._
+---
 
-## Resources
-
-* [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
-* _Link to app/service documentation._
-
-## Version history
-
-_This is another optional section. If your node has multiple versions, include a short description of available versions and what changed, as well as any compatibility impact._
-
-
+For issues or feedback, please open an issue on GitHub.
